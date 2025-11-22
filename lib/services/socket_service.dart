@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:async';
+import 'package:food_seller_app/widgets/notification_banner.dart';
 import 'package:food_seller_app/services/audio_service.dart';
 
 // [!] เราจะใช้ ChangeNotifier เพื่อให้ Widget (เช่น OrderListPage) 
@@ -37,10 +38,14 @@ class SocketService extends ChangeNotifier {
     _socket!.on('new_order', (data) {
       print('NEW ORDER RECEIVED: $data');
       AudioService.playNotificationSound('audio/new_order_alert.mp3');
+      showFacebookStyleNotification(
+        title: 'มีออเดอร์ใหม่! 💰',
+        message: 'Order ID: #${data['orderId']} เข้ามาแล้ว รีบรับเลย!',
+        icon: Icons.restaurant,
+        color: Colors.orange,
+      );
       _orderStreamController.add(data);
-
-      // [!] (Optional) แจ้งเตือน Widget ที่ฟังอยู่
-      notifyListeners(); 
+      notifyListeners();
     });
 
     _socket!.onDisconnect((_) => print('Socket Disconnected (Seller)'));

@@ -19,9 +19,28 @@ class ApiService {
     return prefs.getString('jwt_token');
   }
 
-  Future<void> logout() async {
+  // [!!] 1. ฟังก์ชันเก็บข้อมูล User ลงเครื่อง (Private)
+  Future<void> _saveUserProfile(Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
+    await prefs.setInt('saved_userId', user['userId']);
+    await prefs.setString('saved_name', user['name'] ?? '');
+    await prefs.setString('saved_role', user['role']);
+  }
+
+  // [!!] 2. ฟังก์ชันดึงข้อมูล User จากเครื่อง (เพื่อเช็คว่าเคยล็อคอินไหม)
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    final userId = prefs.getInt('saved_userId');
+    
+    // ถ้าไม่มี Token หรือไม่มี ID แปลว่าไม่ได้ล็อคอิน
+    if (token == null || userId == null) return null;
+
+    return {
+      'userId': userId,
+      'name': prefs.getString('saved_name'),
+      'role': prefs.getString('saved_role'),
+    };
   }
 
   Future<Map<String, String>> _getAuthHeaders() async {
@@ -46,6 +65,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await _saveToken(data['token']); // บันทึก Token
+        await _saveUserProfile(data);
         return data; // [!!] คืนค่าข้อมูล User ทั้งหมด
       }
       print('Login failed: ${response.body}');
@@ -73,6 +93,11 @@ class ApiService {
       print("Register Error: $e");
       return false;
     }
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // ล้างเกลี้ยง (Token + Profile)
   }
 
   // --- 2. Store Functions ---
